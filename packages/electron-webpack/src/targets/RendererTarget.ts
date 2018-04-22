@@ -30,30 +30,30 @@ export class BaseRendererTarget extends BaseTarget {
     configurator.rules.push(
       {
         test: /\.css$/,
-        use: cssHotLoader.concat(ExtractTextPlugin.extract({
-          use: "css-loader",
-          fallback: "style-loader",
-        })),
+        use: cssHotLoader.concat(
+          ExtractTextPlugin.extract({
+            use: "css-loader",
+            fallback: "style-loader"
+          })
+        )
       },
       {
         test: /\.less$/,
-        use: cssHotLoader.concat(ExtractTextPlugin.extract({
-          use: [
-            {loader: "css-loader"},
-            {loader: "less-loader"}
-          ],
-          fallback: "style-loader"
-        }))
+        use: cssHotLoader.concat(
+          ExtractTextPlugin.extract({
+            use: [{ loader: "css-loader" }, { loader: "less-loader" }],
+            fallback: "style-loader"
+          })
+        )
       },
       {
         test: /\.scss/,
-        use: cssHotLoader.concat(ExtractTextPlugin.extract({
-          use: [
-            {loader: "css-loader"},
-            {loader: "sass-loader"}
-          ],
-          fallback: "style-loader"
-        }))
+        use: cssHotLoader.concat(
+          ExtractTextPlugin.extract({
+            use: [{ loader: "css-loader" }, { loader: "sass-loader" }],
+            fallback: "style-loader"
+          })
+        )
       },
       {
         test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
@@ -65,7 +65,7 @@ export class BaseRendererTarget extends BaseTarget {
       {
         test: /\.(mp4|webm|ogg|mp3|wav|flac|aac)(\?.*)?$/,
         loader: "url-loader",
-        options: configureFileLoader("media"),
+        options: configureFileLoader("media")
       },
       {
         test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
@@ -73,24 +73,23 @@ export class BaseRendererTarget extends BaseTarget {
           loader: "url-loader",
           options: configureFileLoader("fonts")
         }
-      },
+      }
     )
 
     if (configurator.hasDevDependency("ejs-html-loader")) {
       configurator.rules.push({
         test: /\.ejs$/,
-        loader: "ejs-html-loader",
+        loader: "ejs-html-loader"
       })
     }
 
     if (configurator.hasDependency("vue")) {
       configureVueRenderer(configurator)
-    }
-    else {
+    } else {
       configurator.rules.push({
         test: /\.(html)$/,
         use: {
-          loader: "html-loader",
+          loader: "html-loader"
         }
       })
     }
@@ -98,13 +97,19 @@ export class BaseRendererTarget extends BaseTarget {
 
   async configurePlugins(configurator: WebpackConfigurator): Promise<void> {
     configurator.debug("Add ExtractTextPlugin plugin")
-    configurator.plugins.push(new ExtractTextPlugin(`${configurator.type === "renderer-dll" ? "vendor" : "styles"}.css`))
+    configurator.plugins.push(
+      new ExtractTextPlugin(
+        `${configurator.type === "renderer-dll" ? "vendor" : "styles"}.css`
+      )
+    )
 
     // https://github.com/electron-userland/electrify/issues/1
     if (!configurator.isProduction) {
-      configurator.plugins.push(new DefinePlugin({
-        "process.env.NODE_ENV": "\"development\"",
-      }))
+      configurator.plugins.push(
+        new DefinePlugin({
+          "process.env.NODE_ENV": '"development"'
+        })
+      )
     }
 
     await BaseTarget.prototype.configurePlugins.call(this, configurator)
@@ -118,30 +123,43 @@ export class RendererTarget extends BaseRendererTarget {
 
   async configurePlugins(configurator: WebpackConfigurator): Promise<void> {
     // not configurable for now, as in the electron-vue
-    const customTemplateFile = path.join(configurator.projectDir, "src/index.ejs")
+    const customTemplateFile = await getCustomTemplateFile(configurator)
     const HtmlWebpackPlugin = require("html-webpack-plugin")
-    const nodeModulePath = configurator.isProduction ? null : path.resolve(configurator.projectDir, "node_modules")
+    const nodeModulePath = configurator.isProduction
+      ? null
+      : path.resolve(configurator.projectDir, "node_modules")
 
-    configurator.plugins.push(new HtmlWebpackPlugin({
-      filename: "index.html",
-      template: (await statOrNull(customTemplateFile)) == null ? (await generateIndexFile(configurator, nodeModulePath)) : customTemplateFile,
-      minify: false,
-      nodeModules: nodeModulePath
-    }))
+    configurator.plugins.push(
+      new HtmlWebpackPlugin({
+        filename: "index.html",
+        template:
+          customTemplateFile === null
+            ? await generateIndexFile(configurator, nodeModulePath)
+            : customTemplateFile,
+        minify: false,
+        nodeModules: nodeModulePath
+      })
+    )
 
     if (configurator.isProduction) {
-      configurator.plugins.push(new DefinePlugin({
-        __static: `"${path.join(configurator.projectDir, "static").replace(/\\/g, "\\\\")}"`
-      }))
-    }
-    else {
-      const contentBase = [path.join(configurator.projectDir, "static"), path.join(configurator.commonDistDirectory, "renderer-dll")]
+      configurator.plugins.push(
+        new DefinePlugin({
+          __static: `"${path
+            .join(configurator.projectDir, "static")
+            .replace(/\\/g, "\\\\")}"`
+        })
+      )
+    } else {
+      const contentBase = [
+        path.join(configurator.projectDir, "static"),
+        path.join(configurator.commonDistDirectory, "renderer-dll")
+      ]
       configurator.config.devServer = {
         contentBase,
         host: process.env.ELECTRON_WEBPACK_WDS_HOST || "localhost",
         port: process.env.ELECTRON_WEBPACK_WDS_PORT || 9080,
         hot: true,
-        overlay: true,
+        overlay: true
       }
     }
 
@@ -149,7 +167,9 @@ export class RendererTarget extends BaseRendererTarget {
   }
 }
 
-async function computeTitle(configurator: WebpackConfigurator): Promise<string | null | undefined> {
+async function computeTitle(
+  configurator: WebpackConfigurator
+): Promise<string | null | undefined> {
   const titleFromOptions = configurator.electronWebpackConfiguration.title
   if (titleFromOptions == null || titleFromOptions === false) {
     return null
@@ -159,7 +179,8 @@ async function computeTitle(configurator: WebpackConfigurator): Promise<string |
     return titleFromOptions
   }
 
-  let title: string | null | undefined = (configurator.metadata as any).productName
+  let title: string | null | undefined = (configurator.metadata as any)
+    .productName
   if (title == null) {
     const electronBuilderConfig = await getConfig<any>({
       packageKey: "build",
@@ -178,29 +199,46 @@ async function computeTitle(configurator: WebpackConfigurator): Promise<string |
   return title
 }
 
-async function generateIndexFile(configurator: WebpackConfigurator, nodeModulePath: string | null) {
+async function generateIndexFile(
+  configurator: WebpackConfigurator,
+  nodeModulePath: string | null
+) {
   // do not use add-asset-html-webpack-plugin - no need to copy vendor files to output (in dev mode will be served directly, in production copied)
-  const assets = await getDllAssets(path.join(configurator.commonDistDirectory, "renderer-dll"), configurator)
+  const assets = await getDllAssets(
+    path.join(configurator.commonDistDirectory, "renderer-dll"),
+    configurator
+  )
   const scripts: Array<string> = []
   const css: Array<string> = []
   for (const asset of assets) {
     if (asset.endsWith(".js")) {
       scripts.push(`<script type="text/javascript" src="${asset}"></script>`)
-    }
-    else {
+    } else {
       css.push(`<link rel="stylesheet" href="${asset}">`)
     }
   }
 
   const title = await computeTitle(configurator)
-  const filePath = path.join(configurator.commonDistDirectory, ".renderer-index-template.html")
-  await outputFile(filePath, `<!DOCTYPE html>
+  const filePath = path.join(
+    configurator.commonDistDirectory,
+    ".renderer-index-template.html"
+  )
+  await outputFile(
+    filePath,
+    `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
     ${title == null ? "" : `<title>${title}</title>`}
     <script>
-      ${nodeModulePath == null ? "" : `require("module").globalPaths.push("${nodeModulePath.replace(/\\/g, "\\\\")}")`}
+      ${
+        nodeModulePath == null
+          ? ""
+          : `require("module").globalPaths.push("${nodeModulePath.replace(
+              /\\/g,
+              "\\\\"
+            )}")`
+      }
       require("source-map-support/source-map-support.js").install()
     </script>
     ${scripts.join("")}
@@ -209,7 +247,27 @@ async function generateIndexFile(configurator: WebpackConfigurator, nodeModulePa
   <body>
     <div id="app"></div>
   </body>
-</html>`)
+</html>`
+  )
 
   return `!!html-loader?minimize=false!${filePath}`
+}
+
+async function getCustomTemplateFile(
+  configurator: WebpackConfigurator
+): Promise<string | null> {
+  const ejsCustomTemplate = path.join(configurator.projectDir, "src/index.ejs")
+  const htmlCustomTemplate = path.join(
+    configurator.projectDir,
+    "src/index.html"
+  )
+  let customTemplate = null
+
+  if (statOrNull(ejsCustomTemplate) !== null) {
+    customTemplate = ejsCustomTemplate
+  } else if (statOrNull(htmlCustomTemplate) !== null) {
+    customTemplate = htmlCustomTemplate
+  }
+
+  return customTemplate
 }
